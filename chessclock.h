@@ -10,7 +10,7 @@
 #define BUTTON_SET 3
 #define SEG_COLON 0b10000000
 
-const uint16_t BLINK_DELAY = 333;
+const uint16_t BLINK_DELAY = 250;
 
 const uint8_t digitToSegment[] = {
  // XGFEDCBA
@@ -48,6 +48,14 @@ int prevSW1 = 0, prevSW2 = 0, prevTimeButton = 0, prevSetButton = 0;
 int deltaSW1 = 0, deltaSW2 = 0, deltaTimeButton = 0, deltaSetButton = 0;
 
 int msCounter = 0; // Used for blinking display
+
+byte setIndex = 0; // Selector index for time set function
+
+// Allows the selected number to flash
+bool numberOn = false;
+
+// How many milliseconds each place in mm:ss is worth
+int32_t indexSignificance[] = {600000, 60000, 10000, 1000};
 
 enum gameState {
   starting_game,
@@ -124,7 +132,7 @@ void displayTime(SevenSegmentExtended disp, uint32_t ms) {
 // leadingZero determines if zero should be shown in tens place of minutes
 void displayTime(SevenSegmentExtended disp, uint32_t ms, bool leadingZero) {
   displayTime(disp, ms);
-  if(ms / (1000*60) < 10) { // Only if there are less than ten minutes on the clock
+  if(ms / 60000 < 10) { // Only if there are less than ten minutes on the clock
     disp.setCursor(0, 0);
     disp.print(0);
   }
@@ -134,5 +142,10 @@ void displayTime(SevenSegmentExtended disp, uint32_t ms, bool leadingZero) {
 void displayTime(SevenSegmentExtended disp, uint32_t ms, byte skipIndex) {
   displayTime(disp, ms);
   disp.setCursor(0, skipIndex);
+  disp.print(" ");
+}
+
+void eraseDigit(SevenSegmentExtended disp, byte eraseIndex){
+  disp.setCursor(0, eraseIndex);
   disp.print(" ");
 }
