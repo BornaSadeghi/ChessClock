@@ -1,77 +1,31 @@
 #include "chessclock.h"
 
-uint16_t prevTime = 0, deltaTime;
+void timeSet() {
 
-void tick() {
-  deltaTime = millis() - prevTime;
-  prevTime = millis();
-}
-
-void displayTime(SevenSegmentExtended disp, uint32_t ms) {
-  double seconds = ms / 1000.0;
-  double minutes = seconds / 60.0;
-  seconds = minutes*60 - (int)minutes*60;
-
-  disp.clear();
-  disp.home(); // Reset cursor
-
-  if (minutes < 10)
-    disp.setCursor(0,1);
-  disp.print((int)minutes);
+  displayTime(display1, player1Millis, true);
+  displayTime(display2, player2Millis, true);
   
-  disp.setCursor(0,2);
-  if (seconds < 10){
-    disp.print(0);
-    disp.setCursor(0,3); 
-  }
-  disp.print((int)seconds);
-}
-
-void init_game() {
-  // Wait for black to start white's timer.
-  display1.setColonOn(true);
-  displayTime(display1, player1Millis);
-  display2.print("PLAY");
-  
+  // Iterate through and set all digits
   int msCounter = 0;
-  while (digitalRead(SW2)) {
-    msCounter += deltaTime;
-    if (msCounter >= BLINK_DELAY) {
-      toggleDisplay1();
-      msCounter = 0;
-    }
+  bool numberOn = false;
+  tick();
+  while (deltaSetButton != 1) {
     tick();
-  }
-
-  display2.setColonOn(true);
-  display1.setBacklight(BRIGHTNESS);
-}
-
-void game_over(bool player1Timeout) {
-  Serial.println("Game over");
-  // Wait for input
-  if (player1Timeout){
-    display1.print("LOSE");
-    display1.setColonOn(false);
-  } else {
-    display2.print("LOSE");
-    display2.setColonOn(false);
-  }
-  int msCounter = 0;
-  while (true) {
-    msCounter += deltaTime;
-    if (msCounter >= BLINK_DELAY) {
-      if (player1Timeout){
-        toggleDisplay1();
+    if (msCounter >= BLINK_DELAY){
+      if (numberOn) {
+        displayTime(display1, player1Millis, true);
       } else {
-        toggleDisplay2();
+        displayTime(display1, player1Millis, (byte)0);
       }
+      numberOn = !numberOn;
       msCounter = 0;
     }
-    tick();
+    msCounter += deltaTime;
   }
-  resetTimers();
 }
+
+gameState state;
+
 
 void setup() {
   Serial.begin(9600);
@@ -88,50 +42,137 @@ void setup() {
   display1.printRaw(allOn, 4, 0);
   display2.printRaw(allOn, 4, 0);
 
-  delay(1000);
+  delay(500);
 
   display1.clear();
   display2.clear();
+
+  state = starting_game;
 }
 
 void loop() {
-//  // put your main code here, to run repeatedly:
-//  display1.showNumberDecEx(1234, 0b01000000, false, 4, 0);
-//  display2.showNumberDecEx(1234, 0b01000000, false, 4, 0);
-//  delay(200);
-//  display1.clear();
-//  display2.clear();
-//  delay(200);
-  
-//  display1.showNumberDecEx(millisToTime(player1Millis), 0b01000000);
-//  display2.showNumberDecEx(millisToTime(player2Millis), 0b01000000);
-  init_game();
+  if (state == starting_game){
+    
+    // Wait for black to start white's timer.
+    display1.setColonOn(true);
+    displayTime(display1, player1Millis);
+    display2.setColonOn(false);
+    display2.print("PLAY");
+    
+    if (deltaSW2 == 1) { // If black presses sw2
+      state = playing_game;
+      display2.setColonOn(true);
+      display1.setBacklight(BRIGHTNESS);
+    } else if (deltaTimeButton == 1) { // If time button pressed
+      state = setting_time;
+    } else { // If nothing happens, blink white's display
+      msCounter += deltaTime;
+      if (msCounter >= BLINK_DELAY) {
+        toggleDisplay1();
+        msCounter = 0;
+      }
+    }
 
-  // Game loop
-  while (true) { 
+
+
+
+  } else if (state == playing_game) {
+
+
+    
     displayTime(display1, player1Millis);
     displayTime(display2, player2Millis);
 
-    if (player1Turn && !digitalRead(SW1) || !player1Turn && !digitalRead(SW2)){
+    if (player1Turn && deltaSW1 == 1 || !player1Turn && deltaSW2 == 1){
       player1Turn = !player1Turn;
     }
   
-    tick();
     if (player1Turn) {
       player1Millis -= deltaTime;
       if (player1Millis <= 0){
-        game_over(true);
-        break;
+        state = player1_timeout;
       }
-
     } else {
       player2Millis -= deltaTime;
       if (player2Millis <= 0){
-        game_over(false);
-        break; 
+        state = player2_timeout;
       }
     }
-  
-    delay(1);
+
+
+    
+  } else if (state == setting_time) {
+    displayTime(display1, player1Millis, true);
+    displayTime(display2, player2Millis, true);
+    
+    // Iterate through and set all digits
+    int msCounter = 0;
+    bool numberOn = false;
+    
+    if (deltaSetButton == 1) {
+      state = setting_inc;
+      return; // Restart the loop function
+    }
+    
+    if (msCounter >= BLINK_DELAY){
+      if (numberOn) {
+        displayTime(display1, player1Millis, true);
+      } else {
+        displayTime(display1, player1Millis, (byte)0);
+      }
+      numberOn = !numberOn;
+      msCounter = 0;
+    }
+    msCounter += deltaTime;
+    
+  } else if (state == setting_inc) {
+    
+  } else if (state == player1_timeout) {
+
+
+
+    display1.setColonOn(false);
+    display1.print("LOSE");
+
+    // Wait for input
+    if (deltaSW1 == 1 || deltaSW2 == 1) {
+      display2.setBacklight(BRIGHTNESS); // Turn on display in case it's off
+      state = starting_game;
+    }
+
+    msCounter += deltaTime;
+    if (msCounter >= BLINK_DELAY) {
+      toggleDisplay1();
+      msCounter = 0;
+    }
+    resetTimers();
+
+
+
+
+  } else if (state == player2_timeout) {
+    display2.setColonOn(false);
+    display2.print("LOSE");
+
+    // Wait for input
+    if (deltaSW1 == 1 || deltaSW2 == 1) {
+      display2.setBacklight(BRIGHTNESS); // Turn on display in case it's off
+      state = starting_game;
+    }
+
+    msCounter += deltaTime;
+    if (msCounter >= BLINK_DELAY) {
+      toggleDisplay2();
+      msCounter = 0;
+    }
+    resetTimers();
   }
+
+
+
+
+  if (deltaSW1 != 0 || deltaSW2 != 0){
+    Serial.print(deltaSW1); Serial.print(" "); Serial.println(deltaSW2);
+  }
+  tick();
 }
