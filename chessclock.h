@@ -8,9 +8,12 @@
 #define SW2 A5
 #define BUTTON_TIME 2
 #define BUTTON_SET 3
+#define LED1 4
+#define LED2 5
+#define BUZZER 6
 #define SEG_COLON 0b10000000
 
-const uint16_t BLINK_DELAY = 250;
+const uint16_t BLINK_DELAY = 200;
 
 const uint8_t digitToSegment[] = {
  // XGFEDCBA
@@ -33,11 +36,17 @@ const uint8_t digitToSegment[] = {
 };
 
 const int BRIGHTNESS = 75;
+const uint32_t MAX_TIME = 5999000; // 99:59
+const uint8_t MAX_INC = 99; // 99 seconds
 
-int32_t player1Millis = 2 * 1000;
-int32_t player2Millis = 2 * 1000;
-const int32_t defaultPlayer1Millis = player1Millis;
-const int32_t defaultPlayer2Millis = player2Millis;
+// 2 seconds with 2 seconds increment
+const int32_t defaultPlayerMillis = 300000; // ms
+const uint8_t defaultPlayerIncrement = 2; // seconds
+
+int32_t player1Millis = defaultPlayerMillis;
+int8_t player1Increment = defaultPlayerIncrement;
+int32_t player2Millis = defaultPlayerMillis;
+int8_t player2Increment = defaultPlayerIncrement;
 
 bool player1Turn = true;
 bool display1On = true;
@@ -49,13 +58,14 @@ int deltaSW1 = 0, deltaSW2 = 0, deltaTimeButton = 0, deltaSetButton = 0;
 
 int msCounter = 0; // Used for blinking display
 
-byte setIndex = 0; // Selector index for time set function
+byte setIndex = 0; // Selector index for time and increment set functions
 
 // Allows the selected number to flash
 bool numberOn = false;
 
 // How many milliseconds each place in mm:ss is worth
 int32_t indexSignificance[] = {600000, 60000, 10000, 1000};
+int16_t indexSignificanceSeconds[] = {600, 60, 10, 1};
 
 enum gameState {
   starting_game,
@@ -74,22 +84,24 @@ const uint8_t allOn[] = {0b11111111, 0b11111111, 0b11111111, 0b11111111};
 const uint8_t allOff[] = {0,0,0,0}; // or use display.clear
 
 void resetTimers() {
-  player1Millis = defaultPlayer1Millis;
-  player2Millis = defaultPlayer2Millis;
+  player1Millis = defaultPlayerMillis;
+  player2Millis = defaultPlayerMillis;
   player1Turn = true;
 }
 
 void toggleDisplay1(){
-  display1.setBacklight(display1On ? 0 : 100);
+  // If on, turn off and vice versa
+  display1.setBacklight(display1On ? 0 : BRIGHTNESS);
   display1On = !display1On;
 }
 
 void toggleDisplay2(){
-  display2.setBacklight(display2On ? 0 : 100);
+  display2.setBacklight(display2On ? 0 : BRIGHTNESS);
   display2On = !display2On;
 }
 
 void tick() {
+  noTone(BUZZER);
   deltaTime = millis() - prevTime;
   prevTime = millis();
 
@@ -143,6 +155,16 @@ void displayTime(SevenSegmentExtended disp, uint32_t ms, byte skipIndex) {
   displayTime(disp, ms);
   disp.setCursor(0, skipIndex);
   disp.print(" ");
+}
+
+void displayIncrement(SevenSegmentExtended disp, uint8_t seconds) {
+  disp.clear();
+
+  disp.printNumber(seconds, false, false, true);
+  if (seconds < 10){ // Add leading zero
+    disp.setCursor(0, 2);
+    disp.print(0);
+  }
 }
 
 void eraseDigit(SevenSegmentExtended disp, byte eraseIndex){
