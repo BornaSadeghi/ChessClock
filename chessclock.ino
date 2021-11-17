@@ -41,7 +41,8 @@ void loop() {
 
   
   if (state == starting_game){
-    
+    digitalWrite(LED1, LOW);
+    digitalWrite(LED2, HIGH);
     // Wait for black to start white's timer.
     displayTime(display1, player1Millis);
     display1.setColonOn(true);
@@ -50,12 +51,16 @@ void loop() {
     
     if (deltaSW2 == 1) { // If black presses sw2
       player1Turn = true;
+      display1.clear();
+      display2.clear();
       digitalWrite(LED1, HIGH);
       digitalWrite(LED2, LOW);
       display2.setColonOn(true);
       display1.setBacklight(BRIGHTNESS); // Ensure display1 is on
       state = playing_game;
     } else if (deltaTimeButton == 1) { // If time button pressed
+      display1.clear();
+      display2.clear();
       display1.setBacklight(BRIGHTNESS); // Ensure displays are on
       display2.setBacklight(BRIGHTNESS);
       display1.setColonOn(true);
@@ -92,8 +97,8 @@ void loop() {
       player1Turn = !player1Turn;
       player2Millis += player2Increment * 1000;
     } else if (deltaTimeButton == 1) { // Stop game and set time
-      resetTimers();
-
+      display1.clear();
+      display2.clear();
       displayTime(display1, player1Millis);
       displayTime(display2, player2Millis);
       
@@ -104,11 +109,15 @@ void loop() {
     if (player1Turn) {
       player1Millis -= deltaTime;
       if (player1Millis <= 0){
+        display1.clear();
+        display2.clear();
         state = player1_timeout;
       }
     } else {
       player2Millis -= deltaTime;
       if (player2Millis <= 0){
+        display1.clear();
+        display2.clear();
         state = player2_timeout;
       }
     }
@@ -163,11 +172,13 @@ void loop() {
       }
     } else { // Finish set time and go to set increment
       setIndex = 2;
-      state = setting_inc;
+      display1.clear();
+      display2.clear();
       display1.setColonOn(false);
       display2.setColonOn(false);
       displayIncrement(display1, player1Increment);
       displayIncrement(display2, player2Increment);
+      state = setting_inc;
     }
     if (msCounter >= BLINK_DELAY) {
       numberOn = !numberOn;

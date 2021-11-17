@@ -6,11 +6,11 @@
 #define CLK2 A3
 #define SW1 A4
 #define SW2 A5
-#define BUTTON_TIME 2
-#define BUTTON_SET 3
-#define LED1 4
-#define LED2 5
-#define BUZZER 6
+#define BUTTON_TIME 13
+#define BUTTON_SET 12
+#define LED1 11
+#define LED2 10
+#define BUZZER 9
 #define SEG_COLON 0b10000000
 
 const uint16_t BLINK_DELAY = 200;
@@ -126,7 +126,6 @@ void displayTime(SevenSegmentExtended disp, uint32_t ms) {
   double minutes = seconds / 60.0;
   seconds = minutes*60 - (int)minutes*60;
 
-  disp.clear();
   disp.home(); // Reset cursor
 
   if (minutes < 10)
