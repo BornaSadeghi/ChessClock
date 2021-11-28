@@ -75,6 +75,7 @@ enum gameState {
   player1_timeout,
   player2_timeout
 };
+gameState state;
 
 SevenSegmentExtended display1 (CLK1, DIO1);
 SevenSegmentExtended display2 (CLK2, DIO2);
@@ -128,8 +129,12 @@ void displayTime(SevenSegmentExtended disp, uint32_t ms) {
 
   disp.home(); // Reset cursor
 
-  if (minutes < 10)
+  if (minutes < 10){
+    if (state == playing_game)
+      disp.print(" ");
+      
     disp.setCursor(0,1);
+  }
   disp.print((int)minutes);
   
   disp.setCursor(0,2);

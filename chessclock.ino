@@ -1,7 +1,5 @@
 #include "chessclock.h"
 
-gameState state;
-
 
 void setup() {
   Serial.begin(9600);
@@ -110,13 +108,11 @@ void loop() {
       player1Millis -= deltaTime;
       if (player1Millis <= 0){
         display1.clear();
-        display2.clear();
         state = player1_timeout;
       }
     } else {
       player2Millis -= deltaTime;
       if (player2Millis <= 0){
-        display1.clear();
         display2.clear();
         state = player2_timeout;
       }
@@ -253,6 +249,7 @@ void loop() {
     // Wait for input
     if (deltaSW1 == 1 || deltaSW2 == 1) {
       display2.setBacklight(BRIGHTNESS); // Turn on display in case it's off
+      display1.clear();
       state = starting_game;
     }
 
@@ -273,6 +270,7 @@ void loop() {
     // Wait for input
     if (deltaSW1 == 1 || deltaSW2 == 1) {
       display2.setBacklight(BRIGHTNESS); // Turn on display in case it's off
+      display2.clear();
       state = starting_game;
     }
 
